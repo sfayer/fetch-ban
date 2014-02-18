@@ -1,0 +1,3 @@
+# Check for ban updates every 4 hours
+12 */4 * * * root /usr/bin/fetch-ban.py
+
