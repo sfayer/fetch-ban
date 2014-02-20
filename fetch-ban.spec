@@ -3,7 +3,7 @@
 
 Name:           fetch-ban
 Version:        1.0.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        A tool for creating ban_users.db from remote servers
 Group:          Applications/Internet
 License:        GPLv3
