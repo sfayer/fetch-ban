@@ -10,6 +10,7 @@ License:        GPLv3
 URL:            https://github.com/sfayer/fetch-ban
 Source0:        https://raw2.github.com/sfayer/fetch-ban/master/fetch-ban.py
 Source1:        https://raw2.github.com/sfayer/fetch-ban/master/fetch-ban.cron
+Source2:        https://raw2.github.com/sfayer/fetch-ban/master/README.bans
 BuildArch:      noarch
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Requires:       vixie-cron python python-pycurl
@@ -34,6 +35,7 @@ cp %{SOURCE1} %{buildroot}%{_sysconfdir}/cron.d/fetch-ban.cron
 # We also need the lcas dir (for output)
 mkdir -p %{buildroot}%{_sysconfdir}/lcas
 touch %{buildroot}%{_sysconfdir}/lcas/ban_static.db
+cp %{SOURCE2} %{buildroot}%{_sysconfdir}/lcas/README
 
 %clean
 rm -rf %{buildroot}
@@ -43,8 +45,12 @@ rm -rf %{buildroot}
 %attr(644, -, -) %{_sysconfdir}/cron.d/fetch-ban.cron
 %attr(755, -, -) %{_bindir}/fetch-ban.py
 %config(noreplace) %{_sysconfdir}/lcas/ban_static.db
+%doc %{_sysconfdir}/lcas/README
 
 %changelog
+* Thu Feb 20 2014 Simon Fayer <sf105@ic.ac.uk> - 1.0.0-2
+- Added readme to hint to a sysadmin on how to ban a user.
+
 * Tue Feb 18 2014 Simon Fayer <sf105@ic.ac.uk> - 1.0.0-1
 - Initial release.
 
