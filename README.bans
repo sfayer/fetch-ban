@@ -1,4 +1,0 @@
-To ban a user, add an entry to ban_static.db and run fetch-ban.py without any
-arguments. Any text manually added to ban_users.db will get overwritten next
-time the cron job runs.
-
