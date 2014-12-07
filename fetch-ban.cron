@@ -1,0 +1,8 @@
+# fetch-ban cron job
+
+# Do normal banning every hour
+0 * * * * root /usr/bin/fetch-ban
+
+# Overwrite all files once a week (Sunday) to ensure consistency
+30 3 * * 0 root /usr/bin/fetch-ban -f
+

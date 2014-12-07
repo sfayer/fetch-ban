@@ -1,0 +1,375 @@
+#!/usr/bin/python
+"""
+fetch-ban - A tool for downloading & installing a banned user list.
+HEP Group, Imperial College London, 2014
+"""
+
+# fetch-ban isn't a valid module name in general, but that's just what
+# this program is called... Tell pylint to ignore it.
+#pylint: disable=invalid-name
+
+import os
+import sys
+import time
+import getopt
+import random
+import logging
+import ConfigParser
+# Load our plugin library
+import FetchBanLib
+
+# Default options
+DEFAULT_CONF = "/etc/fetch-ban.conf"
+
+
+class FetchBanConfig(object):
+  """ A class to process and store a config file. """
+
+  def __init__(self):
+    """ Create an uninitialised config object. """
+    # This dictionary contains the various config parameters
+    # Except for input & output module instances
+    self.__config = {}
+    # Input & output module instances
+    self.__inputs = []
+    self.__outputs = []
+    # Input & output module classes (i.e. available plugins)
+    # Dicts of "plugin name" -> "plugin class"
+    self.__input_plugins = FetchBanLib.INPUTS
+    self.__output_plugins = FetchBanLib.OUTPUTS
+
+  def __conf_host(self, confp):
+    """ Read the host parameters from the given config parser.
+        Returns a string on error or None.
+        Raises ConfigParser exceptions.
+    """
+    for conf_key, value in confp.items("host"):
+      if conf_key in ("hostcert", "hostkey", "cadir", "ban_db"):
+        # Just copy the strings
+        self.__config[conf_key] = value
+      elif conf_key == "delay":
+        try:
+          self.__config[conf_key] = int(value)
+          if value < 0:
+            raise ValueError("Value must be positive")
+        except ValueError:
+          return "Invalid positive integer for delay '%s'." % value
+      elif conf_key == "audit":
+        if value.lower() in ("false", "no", "0"):
+          self.__config[conf_key] = False
+        elif value.lower() in ("true", "yes", "1"):
+          self.__config[conf_key] = True
+        else:
+          return "Uncognised boolean value for audit '%s'." % value
+      elif conf_key.startswith("input"):
+        input_err = self.__conf_input(value)
+        if input_err:
+          return input_err
+      else:
+        return "Unknown [host] section key '%s'." % conf_key
+    # All OK
+    return None
+
+  def __conf_input(self, inp_value):
+    """ Takes the value from an "input" line and configures the
+        requested module.
+        Returns an error string of None.
+    """
+    # Work out the module type
+    hostcert, hostkey, cadir = self.get_gridsecurity()
+    try:
+      input_type, input_param = inp_value.split(":", 1)
+      if not input_type in self.__input_plugins:
+        return "Unrecognised input plugin type '%s'." % input_type
+      input_inst = self.__input_plugins[input_type]()
+      input_err = input_inst.configure(input_param, hostcert, hostkey, cadir)
+      if input_err:
+        return "Failed to configure '%s': %s" % (input_type, input_err)
+      self.__inputs.append((input_type, input_inst))
+    except ValueError:
+      return "Invalid input line '%s'. Expected 'module:param'." % inp_value
+    return None
+
+  def __conf_outputs(self, confp):
+    """ Loads modules for ever section in given config parser,
+        except for the "host" section.
+        Returns an error string or None.
+    """
+    for output_sect in confp.sections():
+      if output_sect == "host":
+        continue # Skip host section.
+      output_type, output_param = None, None
+      for conf_key, value in confp.items(output_sect):
+        if conf_key == "module":
+          output_type = value
+        elif conf_key == "file":
+          output_param = value
+        else:
+          return "Unknown parameter '%s' in section '%s'." % \
+                   (conf_key, output_sect)
+      # Now we can actually create the output module
+      if not output_type in self.__output_plugins:
+        return "Unrecognised output plugin type '%s'." % output_type
+      output_inst = self.__output_plugins[output_type]()
+      output_inst.configure(output_param)
+      self.__outputs.append((output_sect, output_inst))
+    # All OK
+    return None
+
+  def __verify_config(self):
+    """ Checks all the standard parameters are present.
+        Returns a string describing an error or None on success.
+    """
+    # Check we have all the keys we're expecting
+    exp_keys = ("hostcert", "hostkey", "cadir", "delay", "audit", "ban_db")
+    for exp_key in exp_keys:
+      if not exp_key in self.__config:
+        return "'%s' key missing from [host] section." % exp_key
+    # Verify we can access the basic files
+    for file_key in ("hostcert", "hostkey", "cadir"):
+      file_name = self.__config[file_key]
+      if not os.access(file_name, os.R_OK):
+        return "Cannot read %s '%s'." % (file_key, file_name)
+    # Everything looks OK
+    return None
+
+  def read_file(self, filename):
+    """ Loads a config file.
+        Returns a string on an error (describing the problem)
+        and None on success.
+    """
+    try:
+      confp = ConfigParser.SafeConfigParser()
+      confp.read(filename)
+      # Process the host parameters
+      host_err = self.__conf_host(confp)
+      if host_err:
+        return host_err
+      # Process the output sections
+      output_err = self.__conf_outputs(confp)
+      if output_err:
+        return output_err
+    except ConfigParser.Error as err:
+      return "Failed to process config file:\n%s" % err
+    return self.__verify_config()
+
+  def get_gridsecurity(self):
+    """ Returns a tuple of paths:
+        (hostcert, hostkey, cadir)
+    """
+    hostcert = self.__config["hostcert"]
+    hostkey = self.__config["hostkey"]
+    cadir = self.__config["cadir"]
+    return (hostcert, hostkey, cadir)
+
+  def get_bandb(self):
+    """ Return the ban DB path. """
+    return self.__config["ban_db"]
+
+  def get_delay(self):
+    """ Returns the delay parameter int. """
+    return self.__config["delay"]
+
+  def get_audit(self):
+    """ Returns the audit boolean. """
+    return self.__config["audit"]
+
+  def get_inputs(self):
+    """ Returns a list of input plugin instances. """
+    return self.__inputs
+
+  def get_outputs(self):
+    """ Returns a list of output plugin instances. """
+    return self.__outputs
+
+  def get_plugins(self):
+    """ Returns a tuple of input & output plugins.
+        The tuple is a pair of dictionaries:
+          (input_plugins, output_plugins)
+        These have a key of plugin name and a class type as the value.
+    """
+    return (self.__input_plugins, self.__output_plugins)
+
+
+class FetchBanDB(object):
+  """ An object for managing the ban DB. """
+
+  def __init__(self, filename):
+    """ Prepare to open the DB with the given filename. """
+    self.__filename = filename
+
+  @staticmethod
+  def check_dn(user_dn):
+    """ Check if a user DN looks OK, returns True if it does. """
+    if user_dn.count("/") < 3:
+      return False
+    if user_dn.count("=") < 3:
+      return False
+    for bad_char in ('\t', '\n', '\r'):
+      if bad_char in user_dn:
+        return False
+    return True
+
+  def read(self):
+    """ Read the DB and return a list of DNs.
+        Returns a set of DN strings on success, or a string containing
+        an error reason.
+    """
+    raw_dns = []
+    try:
+      if os.path.exists(self.__filename):
+        file_fd = open(self.__filename, "r")
+        raw_dns = file_fd.readlines()
+        file_fd.close()
+      else:
+        logging.warning("Ban DB doesn't exist.")
+    except IOError as err:
+      return "Failed to read ban DB: %s" % err
+    # Return the stripped DNs if they're non-empty
+    return set([dn.strip() for dn in raw_dns if dn.strip()])
+
+  def write(self, dn_list):
+    """ Write the given list of DNs to the DB.
+        (Overwriting an existing DNs).
+        Returns None on success or an error string.
+    """
+    try:
+      file_fd = open(self.__filename, "w")
+      for user_dn in dn_list:
+        file_fd.write("%s\n" % user_dn)
+      file_fd.close()
+    except IOError as err:
+      return "Failed to write ban DB: %s" % err
+    return None
+
+
+def print_modules(conf):
+  """ Print out a list of input & output modules available,
+      and then exit.
+  """
+  inputs, outputs = conf.get_plugins()
+  print "\nINPUT modules:"
+  input_names = inputs.keys()
+  input_names.sort()
+  for input_name in input_names:
+    print " - %s" % input_name
+    print "    Description: %s" % inputs[input_name].__doc__
+    print "    Parameter: %s" % inputs[input_name].PARAM
+  print "\nOUTPUT modules:"
+  output_names = outputs.keys()
+  output_names.sort()
+  for output_name in output_names:
+    print " - %s" % output_name
+    print "    Description: %s" % outputs[output_name].__doc__
+    print "    Parameter: %s" % outputs[output_name].PARAM
+  print ""
+  sys.exit(0)
+
+def usage(err=None):
+  """ Print out the usage information and exit. """
+  if err:
+    print "ERROR: %s" % err
+  print "Usage: fetch-ban [options]"
+  print " Valid options are:"
+  print "  -c <file> -- Use a specific config (Default: %s)" % DEFAULT_CONF
+  print "  -f        -- Update output files even if DN list is unchanged."
+  print "  -m        -- Show available modules & exit"
+  print "  -n        -- Run 'now' (ignoring delay)"
+  print "  -v        -- Increase verbosity (two -v for debug)"
+  print ""
+  sys.exit(0)
+
+def do_banning(conf, force_update):
+  """ Actually handling loading the DNs and doing the banning.
+      Returns a string on error, otherwise None.
+  """
+  ban_db = FetchBanDB(conf.get_bandb())
+  logging.debug("Reading ban DB...")
+  orig_dn_set = ban_db.read()
+  if isinstance(orig_dn_set, str):
+    return orig_dn_set
+  dn_list = []
+  for input_name, input_mod in conf.get_inputs():
+    logging.info("Processing input '%s'...", input_name)
+    try:
+      for user_dn in input_mod.process():
+        if ban_db.check_dn(user_dn):
+          dn_list.append(user_dn)
+        else:
+          logging.warning("Bad DN '%s' from '%s'", user_dn, input_name)
+          continue
+    except IOError as err:
+      logging.error("Input '%s' failed: %s", input_name, err)
+      continue
+  new_dn_set = set(dn_list)
+  # We can now generate the banned & unbanned sets
+  banned_users = new_dn_set - orig_dn_set
+  unbanned_users = orig_dn_set - new_dn_set
+  # Print the audit information
+  if conf.get_audit():
+    for user_dn in banned_users:
+      print "Banning '%s'." % user_dn
+    for user_dn in unbanned_users:
+      print "Unbanning '%s'." % user_dn
+  # Check for changes and do the updates if needed
+  have_changes = banned_users or unbanned_users
+  if have_changes or force_update:
+    # The user list either has changes or we were asked to update anyway
+    for output_name, output_mod in conf.get_outputs():
+      logging.info("Processing output '%s'...", output_name)
+      output_mod.process(new_dn_set)
+    # Finally update our DB
+    logging.debug("Writing ban DB...")
+    ban_db.write(new_dn_set)
+  # Success!
+  return None
+
+def main():
+  """ The main program entry point. """
+  conf = FetchBanConfig()
+  # Options
+  config_file = DEFAULT_CONF
+  force_update = False
+  ign_delay = False
+  verbose = 0
+  # Process the command line options
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "c:fmnv")
+  except getopt.GetoptError as err:
+    usage(err)
+  if args:
+    usage("Unexpected args: %s" % args)
+  for opt, param in opts:
+    if opt == '-c':
+      config_file = param
+    if opt == '-f':
+      force_update = True
+    if opt == '-m':
+      print_modules(conf)
+    if opt == '-n':
+      ign_delay = True
+    if opt == '-v':
+      if verbose < 2:
+        verbose += 1
+  # Set-up logging
+  root_logger = logging.getLogger()
+  root_logger.setLevel(logging.WARNING - (verbose * 10))
+  # Read the config file
+  conf_err = conf.read_file(config_file)
+  if conf_err:
+    logging.critical(conf_err)
+    sys.exit(1)
+  # Do delay
+  if not ign_delay:
+    sleep_time = random.randint(0, conf.get_delay())
+    time.sleep(sleep_time)
+  # Actually handle bans
+  ban_err = do_banning(conf, force_update)
+  if ban_err:
+    logging.critical(ban_err)
+    sys.exit(1)
+  sys.exit(0)
+
+if __name__ == "__main__":
+  main()
+
