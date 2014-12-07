@@ -33,7 +33,7 @@ class FetchBanInputStatic(object):
     file_fd = open(self.__filename, "r")
     raw_lines = file_fd.read_lines()
     file_fd.close()
-    for line in raw_lines
+    for line in raw_lines:
       line = line.strip()
       if line.startswith('"') and line.endswith('"'):
         line = line[1:-1]
