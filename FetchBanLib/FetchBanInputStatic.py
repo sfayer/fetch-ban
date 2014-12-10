@@ -31,7 +31,7 @@ class FetchBanInputStatic(object):
     """
     dn_list = []
     file_fd = open(self.__filename, "r")
-    raw_lines = file_fd.read_lines()
+    raw_lines = file_fd.readlines()
     file_fd.close()
     for line in raw_lines:
       line = line.strip()
