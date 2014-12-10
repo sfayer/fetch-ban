@@ -1,0 +1,16 @@
+Fetch-ban Readme
+----------------
+
+fetch-ban is a tool for collating a list of banned user DNs and placing them
+into the correct places on a given node to ban the users.
+
+The original version of fetch-ban took a list from ARGUS and a static file and
+wrote a single ban_users.db file for LCAS. This new version supports input &
+output plugins which means ban lists can be fetched from multiple services and
+written to one or more files of varying formats. 
+
+The minimum system requirements for fetch-ban are python 2.6 & pyCURL. These
+requirements should be met by RHEL6 and above.
+
+See the example config file in /etc/fetch-ban.conf for configuration details.
+

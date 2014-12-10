@@ -317,7 +317,9 @@ def do_banning(conf, force_update):
     # The user list either has changes or we were asked to update anyway
     for output_name, output_mod in conf.get_outputs():
       logging.info("Processing output '%s'...", output_name)
-      output_mod.process(new_dn_set)
+      err = output_mod.process(new_dn_set)
+      if err:
+        logging.error("Output '%s' failed: %s", output_name, err)
     # Finally update our DB
     logging.debug("Writing ban DB...")
     ban_db.write(new_dn_set)
