@@ -11,7 +11,9 @@ INPUTS = {'argus':  FetchBanInputArgus,
          }
 
 from FetchBanLib.FetchBanOutputLCAS import FetchBanOutputLCAS
+from FetchBanLib.FetchBanOutputGACL import FetchBanOutputGACL
 
-OUTPUTS = {'lcas': FetchBanOutputLCAS,
+OUTPUTS = {'gacl': FetchBanOutputGACL,
+           'lcas': FetchBanOutputLCAS,
           }
 
