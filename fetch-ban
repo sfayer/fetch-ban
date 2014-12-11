@@ -305,7 +305,8 @@ def do_banning(conf, force_update):
           continue
     except IOError as err:
       logging.error("Input '%s' failed: %s", input_name, err)
-      continue
+      logging.critical("Not continuing due to input failure.")
+      return
   new_dn_set = set(dn_list)
   # We can now generate the banned & unbanned sets
   banned_users = new_dn_set - orig_dn_set
