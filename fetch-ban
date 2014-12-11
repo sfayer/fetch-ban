@@ -62,11 +62,16 @@ class FetchBanConfig(object):
         else:
           return "Uncognised boolean value for audit '%s'." % value
       elif conf_key.startswith("input"):
+        continue
+      else:
+        return "Unknown [host] section key '%s'." % conf_key
+    # We have to do the input items later
+    # After everything else has been processed
+    for conf_key, value in confp.items("host"):
+      if conf_key.startswith("input"):
         input_err = self.__conf_input(value)
         if input_err:
           return input_err
-      else:
-        return "Unknown [host] section key '%s'." % conf_key
     # All OK
     return None
 
