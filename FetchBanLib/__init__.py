@@ -10,10 +10,14 @@ INPUTS = {'argus':  FetchBanInputArgus,
           'static': FetchBanInputStatic,
          }
 
+from FetchBanLib.FetchBanOutputDBAN import FetchBanOutputDBAN
 from FetchBanLib.FetchBanOutputLCAS import FetchBanOutputLCAS
 from FetchBanLib.FetchBanOutputGACL import FetchBanOutputGACL
+from FetchBanLib.FetchBanOutputVORM import FetchBanOutputVORM
 
-OUTPUTS = {'gacl': FetchBanOutputGACL,
+OUTPUTS = {'dban': FetchBanOutputDBAN,
+           'gacl': FetchBanOutputGACL,
            'lcas': FetchBanOutputLCAS,
+           'vorm': FetchBanOutputVORM,
           }
 
