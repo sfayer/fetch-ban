@@ -5,8 +5,8 @@
 %endif
 
 Name:           fetch-ban
-Version:        2.0.0
-Release:        3%{?dist}
+Version:        2.0.1
+Release:        1%{?dist}
 Summary:        A tool for updating ban lists from remote servers
 Group:          Applications/Internet
 License:        GPLv3
@@ -59,6 +59,9 @@ rm -Rf %{buildroot}
 %attr(700, root, root) %dir %{_sharedstatedir}/%{name}
 
 %changelog
+* Thu Oct 12 2017 Simon Fayer <sf105@ic.ac.uk> - 2.0.1-1
+- Adjust dCache module for newer versions.
+
 * Thu Dec 11 2014 Simon Fayer <sf105@ic.ac.uk> - 2.0.0-3
 - Minor bug fixes for problems found in testing. New plugins.
 

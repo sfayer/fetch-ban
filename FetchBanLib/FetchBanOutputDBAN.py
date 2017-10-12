@@ -4,7 +4,7 @@
 
 # Base file text
 BASE_TEXT = "### This file will be overwritten by fetch-ban.\n" \
-            "alias dn=org.globus.gsi.jaas.GlobusPrincipal\n\n"
+            "alias dn=org.globus.gsi.gssapi.jaas.GlobusPrincipal\n\n"
 # Template for DN
 DN_TEXT = "ban dn:%s\n"
 
