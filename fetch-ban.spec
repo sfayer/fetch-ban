@@ -55,7 +55,7 @@ rm -Rf %{buildroot}
 %attr(600, root, root) %config(noreplace)%{_sysconfdir}/cron.d/fetch-ban.cron
 %attr(600, root, root) %config(noreplace) %{_sysconfdir}/fetch-ban.conf
 %attr(600, root, root) %config(noreplace) %{_sysconfdir}/fetch-ban.bans
-%attr(755, root, root) %{python2_sitelib}/fetch_ban-%{version}-py2.6.egg-info
+%attr(755, root, root) %{python2_sitelib}/fetch_ban-%{version}-py2.*.egg-info
 %attr(700, root, root) %dir %{_sharedstatedir}/%{name}
 
 %changelog
