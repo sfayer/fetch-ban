@@ -206,9 +206,9 @@ class FetchBanDB(object):
   @staticmethod
   def check_dn(user_dn):
     """ Check if a user DN looks OK, returns True if it does. """
-    if user_dn.count("/") < 3:
+    if user_dn.count("/") < 1:
       return False
-    if user_dn.count("=") < 3:
+    if user_dn.count("=") < 1:
       return False
     for bad_char in ('\t', '\n', '\r'):
       if bad_char in user_dn:

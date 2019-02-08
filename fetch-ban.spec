@@ -61,6 +61,7 @@ rm -Rf %{buildroot}
 %changelog
 * Fri Feb 08 2019 Simon Fayer <sf105@ic.ac.uk> - 2.0.1-2
 - Add extra input source in example config for UK NGI ARGUS server.
+- Make DN checking more permissive.
 
 * Thu Oct 12 2017 Simon Fayer <sf105@ic.ac.uk> - 2.0.1-1
 - Adjust dCache module for newer versions.
