@@ -6,7 +6,7 @@
 
 Name:           fetch-ban
 Version:        2.0.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        A tool for updating ban lists from remote servers
 Group:          Applications/Internet
 License:        GPLv3
@@ -59,6 +59,9 @@ rm -Rf %{buildroot}
 %attr(700, root, root) %dir %{_sharedstatedir}/%{name}
 
 %changelog
+* Fri Feb 08 2019 Simon Fayer <sf105@ic.ac.uk> - 2.0.1-2
+- Add extra input source in example config for UK NGI ARGUS server.
+
 * Thu Oct 12 2017 Simon Fayer <sf105@ic.ac.uk> - 2.0.1-1
 - Adjust dCache module for newer versions.
 
