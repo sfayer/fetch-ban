@@ -9,12 +9,14 @@ HEP Group, Imperial College London, 2014
 #pylint: disable=invalid-name
 
 import os
+import re
 import sys
 import time
 import getopt
 import random
 import logging
 import ConfigParser
+import sre_constants
 # Load our plugin library
 import FetchBanLib
 
@@ -44,7 +46,7 @@ class FetchBanConfig(object):
         Raises ConfigParser exceptions.
     """
     for conf_key, value in confp.items("host"):
-      if conf_key in ("hostcert", "hostkey", "cadir", "ban_db"):
+      if conf_key in ("hostcert", "hostkey", "cadir", "ban_db", "no_audit_re"):
         # Just copy the strings
         self.__config[conf_key] = value
       elif conf_key == "delay":
@@ -72,6 +74,13 @@ class FetchBanConfig(object):
         input_err = self.__conf_input(value)
         if input_err:
           return input_err
+    # We can also now compile the no_audit regexp
+    if "no_audit_re" in self.__config:
+      try:
+        comp_re = re.compile(self.__config["no_audit_re"])
+        self.__config["no_audit_re"] = comp_re
+      except sre_constants.error as err:
+        return "Invalid regexp specified for no_audit_re (%s)." % str(err)
     # All OK
     return None
 
@@ -195,6 +204,13 @@ class FetchBanConfig(object):
     """
     return (self.__input_plugins, self.__output_plugins)
 
+  def no_audit(self, dn_str):
+    """ Checks if the string matches the no-audit regexp.
+        Returns True if it does, false otherwise.
+    """
+    if not "no_audit_re" in self.__config:
+      return False # No regexp, nothing can match
+    return self.__config["no_audit_re"].match(dn_str)
 
 class FetchBanDB(object):
   """ An object for managing the ban DB. """
@@ -314,9 +330,11 @@ def do_banning(conf, force_update):
   # Print the audit information
   if conf.get_audit():
     for user_dn in banned_users:
-      print "Banning '%s'." % user_dn
+      if not conf.no_audit(user_dn):
+        print "Banning '%s'." % user_dn
     for user_dn in unbanned_users:
-      print "Unbanning '%s'." % user_dn
+      if not conf.no_audit(user_dn):
+        print "Unbanning '%s'." % user_dn
   # Check for changes and do the updates if needed
   have_changes = banned_users or unbanned_users
   if have_changes or force_update:

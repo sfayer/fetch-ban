@@ -5,8 +5,8 @@
 %endif
 
 Name:           fetch-ban
-Version:        2.0.1
-Release:        2%{?dist}
+Version:        2.0.2
+Release:        1%{?dist}
 Summary:        A tool for updating ban lists from remote servers
 Group:          Applications/Internet
 License:        GPLv3
@@ -59,6 +59,9 @@ rm -Rf %{buildroot}
 %attr(700, root, root) %dir %{_sharedstatedir}/%{name}
 
 %changelog
+* Fri Feb 15 2019 Simon Fayer <sf105@ic.ac.uk> - 2.0.2-1
+- Added new no_audit_re option to supress printing messages about some DNs.
+
 * Fri Feb 08 2019 Simon Fayer <sf105@ic.ac.uk> - 2.0.1-2
 - Add extra input source in example config for UK NGI ARGUS server.
 - Make DN checking more permissive.
