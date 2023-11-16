@@ -3,7 +3,7 @@
 """
 
 import pycurl
-import StringIO
+from io import BytesIO
 from xml.dom import minidom
 
 
@@ -77,13 +77,13 @@ class FetchBanInputArgus(object):
     curl.setopt(curl.SSLCERT, self.__hostcert)
     curl.setopt(curl.SSLKEY, self.__hostkey)
     curl.setopt(curl.HTTPHEADER, ['SOAPAction: ""'])
-    body = StringIO.StringIO()
+    body = BytesIO()
     curl.setopt(curl.WRITEFUNCTION, body.write)
     try:
       curl.perform()
     except pycurl.error as err:
       raise IOError("Failed to query ARGUS '%s' for '%s': %s" % \
-                     (self.__url, self.__alias, err[1]))
+                     (self.__url, self.__alias, err))
     code = curl.getinfo(pycurl.HTTP_CODE)
     if code != 200:
       raise IOError("Failed to query ARGUS '%s' for '%s' (Code: %d)" % \
